@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  questdb:
+    image: questdb/questdb:latest
+    container_name: questdb
+    pull_policy: "always"
+    restart: "always"
+    ports:
+      - "8812:8812"
+      - "9000:9000"
+      - "9009:9009"
+    volumes:
+      - ./qdb_root:/root/.questdb
+
+  mindsdb:
+    image: mindsdb/mindsdb:questdb_tutorial
+    container_name: mindsdb
+    restart: "always"
+    ports:
+      - "47334:47334"
+      - "47335:47335"
+      - "47336:47336"
+      - "8000:8000"
+    volumes:
+      - .:/root
+    depends_on:
+      - questdb
+
+networks:
+  default:
+    name: mindsdb-network
+    driver: bridge
+
