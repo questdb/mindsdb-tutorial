@@ -1,43 +1,69 @@
 
 # Using QuestDB as a datasource for MindsDB
 
-In this article we will run Mindsdb along with QuestDB, configured as a datasource. We will 
-create a simple table with randomized data, and will train a ML model to predict the price of 
-house rentals. The use case is not really important, as the goal of this article is to 
-familiarize you with these two deep technologies.
+## Introduction
+
+MindsDB enables you to use ML to ask predictive questions in SQL about your data, and receive accurate 
+answers from it. Developers can quickly add AI capabilities to applications. Data Scientists can 
+streamline MLOps by deploying ML models as AI Tables. Data Analysts can easily make forecasts on complex 
+data, such as multivariate time-series with high cardinality, and visualize these in BI tools like 
+Grafana, or Tableau.
+ 
+QuestDB is the best open-source, column-oriented SQL database for time-series type data. It has been 
+designed from the ground up as the de facto backend for high-performance (massively-parallelized vectorized 
+execution, SIMD) demanding applications in financial services, IoT, IIoT, ML, DevOps and observability. It 
+implements ANSI SQL with additional extensions for time-specific queries, which make it simple to correlate 
+data from multiple sources using relational and time series joins, and execute aggregation functions with
+simplicity and speed. 
+
+Combining both, your prediction ability is unbound, and the only language you need is SQL. You can perform 
+all the pre-processing of your data inside QuestDB, using its powerful and unique SQL, and then you can 
+access these data from MindsDB to produce powerful ML models.
+
+The main goal of this article is to gently introduce these two deep technologies, and give you enough 
+understanding to be able to undertake very ambitious ML projects. To that end we will hands-on:
+
+- Build a Docker image of **MindsDB** that is compatible with using **QuestDB** as a datasource.
+- Spawn two Docker containers to run **MindsDB** and **QuestDB**.
+- Add **QuestDB** as a datasource to **MindsDB** through its web UI.
+- Create a table, and add data for a simple ML use case, using **QuestDB**'s web UI.
+- Connect to **MindsDB** through the `mysql` client and write some SQL.
+- Create a predictor for our ML use case.
+- Make some predictions about our data.
+
+Have fun!
 
 ## Requirements
 
-- [Docker](https://docs.docker.com/get-docker/): To build the Mindsdb instance. 
+- [Docker](https://docs.docker.com/get-docker/): To build MindsDB's image. 
 - [docker-compose](https://docs.docker.com/compose/install/): To define and run our multi-container 
   Docker application. It is usually installed implicitly when Docker is installed.
-- [MySQL](https://formulae.brew.sh/formula/mysql): To interact with QuestDB and Mindsdb
+- [MySQL](https://formulae.brew.sh/formula/mysql): To interact with QuestDB and MindsDB
   (`mysql -h 127.0.0.1 --port 47335 -u mindsdb -p`).
-- [Make](https://www.gnu.org/software/make/): Our CLI to build/run/stop Mindsdb, along with QuestDB:
-  - `make build-mindsdb-image`: Uses the Dockerfile file to build Mindsdb's image `mindsdb/mindsdb:questdb_tutorial`.
+- [Make](https://www.gnu.org/software/make/): Our CLI to build/run/stop Docker images/containers:
+  - `make build-mindsdb-image`: Uses the Dockerfile file to build MindsDB's image `mindsdb/mindsdb:questdb_tutorial`.
   - `make compose-up`: Starts the containers of multi-container application, `questdb` and `mindsdb`.
   - `make compose-down`: Stops/Prunes the containers and their volumes. 
     
-     Note: we use external folders to make Mindsdb and QuestDB's data persistent across compose-{up | down}.    
+     Note: we use external folders to make MindsDB and QuestDB's data persistent across compose-{up | down}.    
 
 ## Build Mindsdb image
 
 **Usually**:
 
-1. Clone **Mindsdb**'s repo `git clone git@github.com:mindsdb/mindsdb.git`.
+1. Clone **MindsDB**'s repo `git clone git@github.com:mindsdb/mindsdb.git`.
 2. Create a `venv` environment `python3 -venv venv` .
 3. Activate the environment `source venv/bin/activate`.
 4. Upgrade pip in the `venv` environment with `pip install -U pip`.
-5. Install Mindsdb's requirements `pip install -r requirements.txt` 
+5. Install MindsDB's requirements `pip install -r requirements.txt` 
 6. Install Mindsdb itself `pip install -e .` 
 7. This would allow you to run Mindsdb as a module
 
 `python -m mindsdb --config=<actual path to>/mindsdb_config.json --api=http,mysql,mongodb`
 
-**However** I work on a Mac M1, the above breaks down at step 5, when numpy's wheel is being built 
-as a dependency.
+**However**, if you work on a Mac M1, the above might break down.
 
-**Instead** we simply build a Mindsdb image locally with command:
+**Instead** simply build a MindsDB image locally with command:
 
 ```bash
 make build-mindsdb-image
@@ -58,7 +84,7 @@ This allows us to add and interact with QuestDB as a datasource:
 RUN python -m pip install --prefer-binary --no-cache-dir --upgrade pip==22.0.4 && \
     pip install --prefer-binary --no-cache-dir wheel==0.37.1 && \
     pip install --prefer-binary --no-cache-dir mindsdb==$MINDSDB_VERSION && \
-    pip install --prefer-binary --no-cache-dir mindsdb-datasources[postgresql]
+    pip install --prefer-binary --no-cache-dir mindsdb-datasources[postgresql] <--- THIS, QuestDB speaks postgres-wire-protocol
 ```
 
 ## Running our multi-container Docker application
@@ -112,7 +138,7 @@ make compose-up
 - [mindsdb](https://github.com/mindsdb/mindsdb): Creates two folders **mindsdb_store**, **nltk_data**, uses 
   the configuration file **mindsdb_config.json** => available at [localhost:47334](http://localhost:47334). 
   
-Mindsdb takes about 60-90 seconds to become available, logs can be followed in the terminal:
+MindsDB takes about 60-90 seconds to become available, logs can be followed in the terminal:
 
 ```bash
 docker logs -f mindsdb
@@ -138,6 +164,46 @@ We can stop the two containers with command:
 ```bash
 make compose-down
 ```
+
+## Adding QuestDB as a datasource
+
+We can add QuestDB as a datasource to MindsDB by:
+
+1. Browsing to MindsDB dashboard at [localhost:47334](http://localhost:47334)
+2. Clicking on the green button labelled **ADD DATABASE**, which will prompt 
+   a dialog asking for QuestDB's connection attributes, use these verbatim:
+
+   | Attr. Name           | Attr. Value          |
+   |----------------------| -------------------- |
+   | Name Your Connection | questdb              |
+   | Supported Databases  | PostgreSQL           |
+   | Database Name        | questdb              |
+   | Host                 | questdb              |
+   | Port                 | 8812                 |
+   | Username             | admin                |
+   | Password             | quest                |
+
+   Note: Host is `questdb`, the name of QuestDB's container, which
+   runs along `mindsdb` on the same bridge network `mindsdb-network`.
+
+We can achieve the same by connecting to MindsDB (ref. [Connecting to MindsDB](#connecting-to-mindsdb)) and executing:
+
+```sql
+USE mindsdb;
+
+CREATE DATASOURCE questdb
+    WITH ENGINE = "postgres",
+    PARAMETERS = {
+        "user": "admin",
+        "password": "quest",
+        "host": "questdb",
+        "port": "8812",
+        "database": "questdb",
+        "public": true
+    };
+```
+
+Note: in this case the web UI will not assign it a `Name Your Connection`.
 
 ## Adding data to QuestDB
 
@@ -166,61 +232,20 @@ INSERT INTO house_rentals_data SELECT * FROM (
         rnd_int(1,3,0),
         rnd_int(180,2000,0),
         rnd_symbol('meh', 'good', 'great', 'amazing'),
-        rnd_symbol('uptown', 'downtown', 'west_end', 'east_end', 'north_side', 'south_size'),
+        rnd_symbol('uptown', 'downtown', 'west_end', 'east_end', 'north_side', 'south_side'),
         rnd_int(1,20,0),
         rnd_float(0) * 1000 + 500,
         timestamp_sequence(
-            to_timestamp('2021-01-01T00:00:00', 'yyyy-mm-ddTHH:mm:ss'),
+            to_timestamp('2021-01-01', 'yyyy-MM-dd'),
             14400000000L
         )
     FROM long_sequence(100)
 );
 ```
-
-## Adding QuestDB as a datasource
-
-We can add QuestDB as a datasource to Mindsdb by:
-
-1. Browsing to Mindsdb dashboard at [localhost:47334](http://localhost:47334)
-2. Clicking on the green button labelled **ADD DATABASE**, which will prompt 
-   a dialog asking for QuestDB's connection attributes, use these verbatim:
-
-   | Attr. Name           | Attr. Value          |
-   |----------------------| -------------------- |
-   | Name Your Connection | questdb              |
-   | Supported Databases  | PostgreSQL           |
-   | Database Name        | questdb              |
-   | Host                 | questdb              |
-   | Port                 | 8812                 |
-   | Username             | admin                |
-   | Password             | quest                |
-
-   Note: Host is `questdb`, the name of QuestDB's container, which
-   runs along `mindsdb` on the same bridge network `mindsdb-network`.
-
-We can achieve the same by connecting to Mindsdb (ref. [Connecting to Mindsdb](#connecting-to-mindsdb)) and executing:
-
-```sql
-USE mindsdb;
-
-CREATE DATASOURCE questdb
-    WITH ENGINE = "postgres",
-    PARAMETERS = {
-        "user": "admin",
-        "password": "quest",
-        "host": "questdb",
-        "port": "8812",
-        "database": "questdb",
-        "public": true
-    };
-```
-
-Note: in this case the web UI will not assign it a `Name Your Connection`.
-
    
-## Connecting to Mindsdb
+## Connecting to MindsDB
 
-We can connect to Mindsdb with a standard mysql-wire-protocol compliant client (no password, hit ENTER):
+We can connect to MindsDB with a standard mysql-wire-protocol compliant client (no password, hit ENTER):
 
 ```bash
 mysql -h 127.0.0.1 --port 47335 -u mindsdb -p
@@ -247,8 +272,8 @@ Only two databases are relevant to us, *mindsdb* and *questdb*:
   
   We can query it leveraging the full power of QuestDB's unique SQL syntax (SELECT queries only) 
   because statements are sent over to QuestDB through a python client library that uses the 
-  postgres-wire-protocol and are not interpreted by Mindsdb itself (Mindsdb does not support
-  QuestDB's syntax - To access it you first need to **USE** it): 
+  postgres-wire-protocol and are not interpreted by MindsDB itself (MindsDB does not support
+  QuestDB's syntax - To access it you first need to **USE questdb** first): 
 
     ```bash
     mysql> USE questdb;
@@ -339,12 +364,12 @@ ORDER BY ts
 WINDOW 10 HORIZON 2;
 ```
 
-This triggers Mindsdb to create/train the model based on the full data available from QuestDB's table 
+This triggers MindsDB to create/train the model based on the full data available from QuestDB's table 
 `house_rentals_data` (100 rows) as a timeseries on column `ts`, with a history of 10 rows to predict 
 the next 2.
 
-You can see the progress by monitoring the log output of the `mindsdb` docker container, and you can
-ask Mindsdb directly:
+You can see the progress by monitoring the log output of the `mindsdb` Docker container, and you can
+ask MindsDB directly:
 
 ```bash
 mysql> select * from predictors;
@@ -372,13 +397,13 @@ mysql> select * from predictors;
 1 row in set (0.18 sec)
 ```
 
-When status is **completed** the model is ready for use, until then, simply wait while you observe `mindsdb`'s 
+When status is **complete** the model is ready for use, until then, simply wait while you observe `mindsdb`'s 
 logs, and repeat the query periodically. Creating/training a model will take time proportional to the number of features, 
 i.e.cardinality of the source table as defined in the inner SELECT of the CREATE PREDICTOR statement, and the 
 size of the corpus, i.e. number of rows.
 
 
-## Querying Mindsdb for predictions
+## Querying MindsDB for predictions
 
 TO BE CONTINUED ...
 
