@@ -31,7 +31,7 @@ understanding to be able to undertake very ambitious ML projects. To that end we
 
 - Build a Docker image of **MindsDB** that is compatible with using **QuestDB** as a datasource.
 - Spawn two Docker containers to run **MindsDB** and **QuestDB**.
-- Add **QuestDB** as a datasource to **MindsDB** using MindsDB web console.
+- Add **QuestDB** as a datasource to **MindsDB** using MindsDB's web console.
 - Create a table and add data for a simple ML use case using **QuestDB**'s web console.
 - Connect to **MindsDB** using `mysql` client and write some SQL.
 - Create a predictor for our ML use case.
@@ -173,7 +173,7 @@ make compose-down
 We can remove all persisted data and configuration executing:
 
 ```bash
-remove_persisted_data
+./remove_persisted_data.sh
 ``` 
 
 Note: Doing this means that the next time you start the containers you will need to add QuestDB again as a datasource,
@@ -227,7 +227,7 @@ We can access QuestDB's web console at [localhost:9000](http://localhost:9000):
 
 ![QuestDB_web_console](images/questdb_web_console.png)
 
-and execute this DDL query to create a simple table (select the query and click `Run`):
+and execute this DDL query to create a simple table (copy this query to the web console, select it and click `Run`):
 
 ```sql
 CREATE TABLE IF NOT EXISTS house_rentals_data (
@@ -284,6 +284,8 @@ We can equally upload data from a local CSV file to QuestDB:
 curl -F data=@sample_house_rentals_data.csv "http://localhost:9000/imp?forceHeader=true&name=house_rentals_data"
 ```
 
+More information available [here!](https://questdb.io/docs/develop/insert-data#rest-api).
+
 ## Connecting to MindsDB
 
 We can connect to MindsDB with a standard mysql-wire-protocol compliant client (no password, hit ENTER):
@@ -292,7 +294,7 @@ We can connect to MindsDB with a standard mysql-wire-protocol compliant client (
 mysql -h 127.0.0.1 --port 47335 -u mindsdb -p
 ```
 
-Only two databases are relevant to us, *mindsdb* and *questdb*:
+Only two databases are relevant to us, *questdb* and *mindsdb*:
 
     ```bash
     mysql> show databases;
@@ -314,10 +316,9 @@ This is a view on our QuestDB instance added as a PostgreSQL datasource in secti
 [Adding QuestDB as a datasource](#adding-questdb-as-a-datasource). 
   
 We can query it leveraging the full power of QuestDB's unique SQL syntax (SELECT queries only) 
-because statements are sent over from MindsDB to QuestDB through a python client library that 
-uses the postgres-wire-protocol and are not interpreted by MindsDB itself (MindsDB does not 
-support QuestDB's syntax - To access it you first need to **USE questdb**, which in effect
-activates the datasource): 
+because statements are sent from MindsDB to QuestDB, through a python client library that 
+uses the postgres-wire-protocol, and are not interpreted by MindsDB itself (MindsDB does not 
+support QuestDB's syntax - You first need to **USE questdb**): 
 
 ```bash
 mysql> USE questdb --> MANDATORY;
@@ -350,8 +351,8 @@ SAMPLE BY 1h;
   
 This query samples our data into 1h buckets then, only considering buckets that fall
 between the 8th and 9th of January, it calculates various aggregation functions. The original
-data was sampled at one data point per hour and our query attempts to sample it with a lower
-resolution, therefore our data will contain gaps. QuestDB allows you to pick a 
+data was sampled at one data point every 4 hours and our query attempts to sample it with 
+a lower resolution, therefore our data will contain gaps. QuestDB allows you to pick a 
 [FILL strategy](https://questdb.io/docs/reference/sql/sample-by/#fill-options) and complete 
 the missing data:
 
@@ -436,9 +437,9 @@ FILL(NULL);
 175 rows in set (0.41 sec)
 ```
 
-Beyond SELECT statements, for instance when we need to save the result of the above queries into new tables,
+Beyond SELECT statements, for instance when we need to save the results of the above queries into new tables,
 we need to use QuestDB's web console available at [localhost:9000](http://localhost:9000), and then we can 
-create table `a_day_sampled_by_1h` like so:
+create table `a_day_sampled_by_1h` like this:
 
 ```sql
 CREATE TABLE a_day_sampled_by_1h AS (
@@ -455,10 +456,9 @@ CREATE TABLE a_day_sampled_by_1h AS (
 ) TIMESTAMP(ts) PARTITION BY MONTH;
 ```
 
-
 ### mindsdb
 
-Contains the metadata tables necessary to create ML models and add new datasources:
+Contains the metadata tables necessary to create ML models and add new data sources:
 
 ```bash
 mysql> use mindsdb;
@@ -562,5 +562,12 @@ TO BE CONTINUED ...
 
 ## MindsDB http api
 
-MindsDB exposes a REST api, with swagger available at [http://localhost:47334/doc/](http://localhost:47334/doc/).
+MindsDB exposes a REST api with swagger available at [http://localhost:47334/doc/](http://localhost:47334/doc/).
 
+
+# Well done reading this fine article!
+
+###Thank you for giving us a High Five, and a star in GitHub!!
+
+- **QuestDB**: [https://github.com/questdb/questdb](https://github.com/questdb/questdb)
+- **MindsDB**: [https://github.com/mindsdb/mindsdb](https://github.com/mindsdb/mindsdb)
