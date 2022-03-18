@@ -2,3 +2,4 @@
 mindsdb_store/
 nltk_data/
 qdb_root/
+.DS_Store/
