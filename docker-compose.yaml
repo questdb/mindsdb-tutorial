@@ -16,6 +16,7 @@ services:
   mindsdb:
     image: mindsdb/mindsdb:questdb_tutorial
     container_name: mindsdb
+    pull_policy: "never"
     restart: "always"
     ports:
       - "47334:47334"

@@ -13,16 +13,17 @@ and receive accurate answers from it, all **in SQL**. With MindsDB:
   cardinality, and visualize these in BI tools like [Grafana](https://grafana.com/), and 
   [Tableau](https://www.tableau.com/).
  
-[QuestDB](https://questdb.io/) is **the best open-source**, column-oriented SQL database for time-series type data. 
-It has been designed and built for massively-parallelized vectorized execution, and SIMD, as the de-facto backend 
-for high-performance demanding applications in financial services, IoT, IIoT, ML, DevOps and observability. 
+[QuestDB](https://questdb.io/) is **the fastest open-source**, column-oriented SQL database for time-series data. 
+It has been designed and built for massively-parallelized vectorized execution and SIMD, as the de-facto backend 
+for high-performance demanding applications in financial services, IoT, IIoT, ML, MLOps, DevOps and observability. 
 QuestDB implements **ANSI SQL with additional extensions for time-specific queries**, which make it simple to correlate 
-data from multiple sources using relational and time series joins, and execute aggregation functions with simplicity 
-and speed. In addition, QuestDB is resources efficient (comparatively cheaper than other projects to run in cloud 
-environments), simple to install, manage, use, and stable in all [production environments](https://questdb.io/customers/).   
+data from multiple sources using relational and time series [joins](https://questdb.io/docs/reference/sql/join), and 
+execute [aggregation functions](https://questdb.io/docs/reference/function/aggregation) with simplicity and speed.
+In addition, QuestDB is resources efficient (comparatively cheaper than other projects to run in cloud environments), 
+simple to install, manage, use, and stable in all [production environments](https://questdb.io/customers/).   
 
-Combining both MindsDB and QuestDB gives you unbound prediction ability with SQL. You can perform 
-all the pre-processing of your data inside QuestDB using its powerful and [unique extended SQL](https://questdb.io/customers/), 
+Combining both MindsDB and QuestDB gives you unbound prediction ability with SQL. You can perform all the pre-processing 
+of your data inside QuestDB using its powerful and [unique extended SQL](https://questdb.io/docs/concept/sql-extensions), 
 and then you can access these data from MindsDB, in its own [also unique SQL](https://docs.mindsdb.com/sql/), to produce 
 powerful ML models.
 
@@ -43,17 +44,18 @@ Have fun!
 
 - [Docker](https://docs.docker.com/get-docker/): To build MindsDB's image. 
 - [docker-compose](https://docs.docker.com/compose/install/): To define and run our multi-container 
-  Docker application. It is usually installed implicitly when Docker is installed.
-- [MySQL](https://formulae.brew.sh/formula/mysql): To interact with QuestDB and MindsDB
+  Docker application (it is usually installed implicitly when Docker is installed).
+- [MySQL](https://formulae.brew.sh/formula/mysql): The client we will use to interact with MindsDB
   (`mysql -h 127.0.0.1 --port 47335 -u mindsdb -p`).
-- [Make](https://www.gnu.org/software/make/): Our CLI to build/run/stop Docker images/containers:
+- [Make](https://www.gnu.org/software/make/): Our CLI to build images and run/stop containers:
   - `make build-mindsdb-image`: Uses the Dockerfile file to build MindsDB's image `mindsdb/mindsdb:questdb_tutorial`.
   - `make compose-up`: Starts the containers of our multi-container application, `questdb` and `mindsdb`.
   - `make compose-down`: Stops/prunes the containers and their volumes. 
     
-     Note: we use external folders to make MindsDB and QuestDB's data persistent across compose-{up | down}.
-     You can remove all persisted data and configuration executing `remove_persisted_data`. Doing this means
-     that the next time you start the containers you will need to add QuestDB again as a datasource.
+     Note: we use external folders to make MindsDB and QuestDB's data persistent across `compose-{up | down}`.
+     You can remove all persisted data and configuration executing `remove_persisted_data.sh`. Doing this means 
+     that the next time you start the containers you will need to add QuestDB as a datasource again, as well as 
+     recreate the table, upload data, and recreate your ML models.
 - [Curl](https://curl.se/download.html): To check MindsDB's release build version.
 
 Software repositories in case you are inclined to looking under the hood (**Give us a star!**):
@@ -68,12 +70,13 @@ We can build a MindsDB Docker image locally with command:
 make build-mindsdb-image
 ```
 
-this takes some time, and results in a new image `mindsdb/mindsdb:questdb_tutorial`:
+which takes about 5 minutes depending on network speed as it needs to download MindsDB's base image and install 
+dependencies to it. The result is image `mindsdb/mindsdb:questdb_tutorial`:
 
 ```bash
 $ docker images
 REPOSITORY        TAG                IMAGE ID       CREATED          SIZE
-mindsdb/mindsdb   questdb_tutorial   38f294a5804b   14 minutes ago   8.91GB
+mindsdb/mindsdb   questdb_tutorial   a63d304e51f5   6 seconds ago    8.91GB
 ```
 
 The [**Dockerfile**](./Dockerfile) file used in the build process contains an explicit `pip install` command for 
@@ -81,15 +84,13 @@ the PostgreSQL type of datasource. This is required because QuestDB speaks
 [postgres-wire-protocol](https://questdb.io/docs/reference/api/postgres) with "3rd-party" integrations.
 
 ```dockerfile
-RUN python -m pip install --prefer-binary --no-cache-dir --upgrade pip==22.0.4 && \
-    pip install --prefer-binary --no-cache-dir wheel==0.37.1 && \
-    pip install --prefer-binary --no-cache-dir mindsdb==$MINDSDB_VERSION && \
+RUN python -m pip install --prefer-binary --no-cache-dir --upgrade pip>=22.0.4 && \
     pip install --prefer-binary --no-cache-dir mindsdb-datasources[postgresql] <--- THIS
 ```
 
 Note: QuestDB also exposes a [REST API](https://questdb.io/docs/reference/api/rest/), 
 a TCP/UDP socket based [text protocol](https://questdb.io/docs/reference/api/ilp/overview/) for optimised 
-ingestion (closely implementing *InfluxDB Line Protocol* specification), and being 
+ingestion (closely implementing *InfluxDB Line Protocol* specification). In addition, it is  
 [embeddable in Java applications](https://questdb.io/docs/reference/api/java-embedded).
 
 ## Running our multi-container Docker application
@@ -176,8 +177,9 @@ We can remove all persisted data and configuration executing:
 ./remove_persisted_data.sh
 ``` 
 
-Note: Doing this means that the next time you start the containers you will need to add QuestDB again as a datasource,
+Note: Doing this means that the next time you start the containers you will need to add QuestDB as a datasource again,
 as well as recreate the table, add data, and recreate your ML models.
+
 
 ## Adding QuestDB as a datasource
 
@@ -231,18 +233,26 @@ and execute this DDL query to create a simple table (copy this query to the web 
 
 ```sql
 CREATE TABLE IF NOT EXISTS house_rentals_data (
-    number_of_rooms int,
-    number_of_bathrooms int,
-    sqft int,
-    location symbol,
-    neighborhood symbol,
-    days_on_market int,
-    rental_price float,
-    ts timestamp
-) timestamp(ts) PARTITION BY YEAR;
+    number_of_rooms INT,
+    number_of_bathrooms INT,
+    sqft INT,
+    location SYMBOL,
+    days_on_market INT,
+    initial_price FLOAT,
+    neighborhood SYMBOL,
+    rental_price FLOAT,
+    ts TIMESTAMP
+) TIMESTAMP(ts) PARTITION BY YEAR;
 ```
 
-We can populate table `house_rentals_data` with random data ([excellent tutorial on this](https://questdb.io/tutorial/2022/03/14/mock-sql-timeseries-data-questdb/)):
+We can upload data from a [local CSV file](./sample_house_rentals_data.csv) to QuestDB:
+
+```bash
+curl -F data=@sample_house_rentals_data.csv "http://localhost:9000/imp?forceHeader=true&name=house_rentals_data"
+```
+More information available [here!](https://questdb.io/docs/develop/insert-data#rest-api).
+
+We could equally populate table `house_rentals_data` with random data ([excellent tutorial on this](https://questdb.io/tutorial/2022/03/14/mock-sql-timeseries-data-questdb/)):
 
 ```sql
 INSERT INTO house_rentals_data SELECT * FROM (
@@ -250,9 +260,10 @@ INSERT INTO house_rentals_data SELECT * FROM (
         rnd_int(1,6,0),
         rnd_int(1,3,0),
         rnd_int(180,2000,0),
-        rnd_symbol('meh', 'good', 'great', 'amazing'),
-        rnd_symbol('uptown', 'downtown', 'west_end', 'east_end', 'north_side', 'south_side'),
+        rnd_symbol('great', 'good', 'poor'),
         rnd_int(1,20,0),
+        rnd_float(0) * 1000,
+        rnd_symbol('alcatraz_ave', 'berkeley_hills', 'downtown', 'south_side', 'thowsand_oaks', 'westbrae'),
         rnd_float(0) * 1000 + 500,
         timestamp_sequence(
             to_timestamp('2021-01-01', 'yyyy-MM-dd'),
@@ -262,29 +273,12 @@ INSERT INTO house_rentals_data SELECT * FROM (
 );
 ```
 
-This gives us a data point every 4 hours from 2021-01-16T12:00:00.000000Z (QuestDB's timestamps are UTC with 
-microsecond precision). 
+Either way, this gives us 100 data points, one every 4 hours, from 2021-01-16T12:00:00.000000Z (QuestDB's timestamps 
+are UTC with microsecond precision), conveniently downloaded to file [sample_house_rentals_data.csv](./sample_house_rentals_data.csv).
+ 
+NOTE: If you tried the last query, you will have 200 rows, you can `truncate table house_rentals_data` and run the curl 
+command again, in QuestDB data are immutable.
 
-### Bonus material
-
-QuestDB's web console allows us to download up to 1e6 rows at the time into a a CSV file. If your table has more 
-rows than 1e6 then you can use the [LIMIT](https://questdb.io/docs/reference/sql/limit/) clause to select the 
-appropriate rows, and you can download as many as you need 1e6 at the time:
-
-```sql
-SELECT * FROM house_rentals_data LIMIT 1, 1000000;
-SELECT * FROM house_rentals_data LIMIT 1000001, 2000000;
-SELECT * FROM house_rentals_data LIMIT 2000001, 3000000;
-...
-```
-
-We can equally upload data from a local CSV file to QuestDB:
-
-```bash
-curl -F data=@sample_house_rentals_data.csv "http://localhost:9000/imp?forceHeader=true&name=house_rentals_data"
-```
-
-More information available [here!](https://questdb.io/docs/develop/insert-data#rest-api).
 
 ## Connecting to MindsDB
 
@@ -315,144 +309,66 @@ Only two databases are relevant to us, *questdb* and *mindsdb*:
 This is a view on our QuestDB instance added as a PostgreSQL datasource in section 
 [Adding QuestDB as a datasource](#adding-questdb-as-a-datasource). 
   
-We can query it leveraging the full power of QuestDB's unique SQL syntax (SELECT queries only) 
-because statements are sent from MindsDB to QuestDB, through a python client library that 
-uses the postgres-wire-protocol, and are not interpreted by MindsDB itself (MindsDB does not 
-support QuestDB's syntax - You first need to **USE questdb**): 
+We can query it leveraging the full power of QuestDB's unique SQL syntax because statements are 
+sent from MindsDB to QuestDB without interpreting them. It only works for *SELECT* statements (it 
+requires activation by means of **USE questdb;**): 
 
 ```bash
-mysql> USE questdb --> MANDATORY;
+mysql> USE questdb;
 Database changed
   
 mysql> 
 SELECT
-    ts When,
-    concat(neighborhood, '(', location, ')') Where,
-    sum(days_on_market) 'Days Live',
-    avg(rental_price) 'Avg Rent',
-    min(rental_price) 'Min Rent'
-FROM house_rentals_data
-WHERE ts BETWEEN '2021-01-08' AND '2021-01-09'
-SAMPLE BY 1h;
-  
-+--------------+-------------------+-----------+--------------------+----------+
-| When         | Where             | Days Live | Avg Rent           | Min Rent |
-+--------------+-------------------+-----------+--------------------+----------+
-| 1610064000.0 | west_end(meh)     | 20        | 906.711669921875   | 906.712  |
-| 1610078400.0 | north_side(meh)   | 10        | 590.3262939453125  | 590.326  |
-| 1610092800.0 | uptown(great)     | 14        | 536.1471557617188  | 536.147  |
-| 1610107200.0 | west_end(amazing) | 12        | 1278.8529052734375 | 1278.853 |
-| 1610121600.0 | uptown(amazing)   | 6         | 1486.904296875     | 1486.904 |
-| 1610136000.0 | east_end(amazing) | 7         | 1355.678466796875  | 1355.679 |
-| 1610150400.0 | south_side(good)  | 4         | 718.14990234375    | 718.15   |
-+--------------+-------------------+-----------+--------------------+----------+
-7 rows in set (0.33 sec)
-```
-  
-This query samples our data into 1h buckets then, only considering buckets that fall
-between the 8th and 9th of January, it calculates various aggregation functions. The original
-data was sampled at one data point every 4 hours and our query attempts to sample it with 
-a lower resolution, therefore our data will contain gaps. QuestDB allows you to pick a 
-[FILL strategy](https://questdb.io/docs/reference/sql/sample-by/#fill-options) and complete 
-the missing data:
-
-```sql
-mysql> 
-SELECT
     ts,
-    neighborhood,
-    location,
-    sum(days_on_market) 'Days Live',
-    avg(rental_price) 'Avg Rent',
-    min(rental_price) 'Min Rent'
+    neighborhood, 
+    sum(days_on_market) DaysLive,
+    min(rental_price) MinRent,
+    max(rental_price) MaxRent,
+    avg(rental_price) AvgRent
 FROM house_rentals_data
-WHERE ts BETWEEN '2021-01-08' AND '2021-01-09'
-SAMPLE BY 1h
-FILL(NULL);
-+--------------+--------------+----------+-----------+--------------------+----------+
-| ts           | neighborhood | location | Days Live | Avg Rent           | Min Rent |
-+--------------+--------------+----------+-----------+--------------------+----------+
-| 1610064000.0 | west_end     | meh      | 20.0      | 906.711669921875   | 906.712  | <- 2021-01-08 00:00:00.0
-| 1610064000.0 | north_side   | meh      | nan       | nan                | nan      |
-| 1610064000.0 | uptown       | great    | nan       | nan                | nan      |
-| 1610064000.0 | west_end     | amazing  | nan       | nan                | nan      |
-| 1610064000.0 | uptown       | amazing  | nan       | nan                | nan      |
-| 1610064000.0 | east_end     | amazing  | nan       | nan                | nan      |
-| 1610064000.0 | south_side   | good     | nan       | nan                | nan      |
-| 1610067600.0 | west_end     | meh      | nan       | nan                | nan      | <- 2021-01-08 01:00:00.0
-| 1610067600.0 | north_side   | meh      | nan       | nan                | nan      |
-| 1610067600.0 | uptown       | great    | nan       | nan                | nan      |
-| 1610067600.0 | west_end     | amazing  | nan       | nan                | nan      |
-| 1610067600.0 | uptown       | amazing  | nan       | nan                | nan      |
-| 1610067600.0 | east_end     | amazing  | nan       | nan                | nan      |
-| 1610067600.0 | south_side   | good     | nan       | nan                | nan      |
-| 1610071200.0 | west_end     | meh      | nan       | nan                | nan      | <- 2021-01-08 02:00:00.0
-| 1610071200.0 | north_side   | meh      | nan       | nan                | nan      |
-| 1610071200.0 | uptown       | great    | nan       | nan                | nan      |
-| 1610071200.0 | west_end     | amazing  | nan       | nan                | nan      |
-| 1610071200.0 | uptown       | amazing  | nan       | nan                | nan      |
-| 1610071200.0 | east_end     | amazing  | nan       | nan                | nan      |
-| 1610071200.0 | south_side   | good     | nan       | nan                | nan      |
-| 1610074800.0 | west_end     | meh      | nan       | nan                | nan      | <- 2021-01-08 03:00:00.0
-| 1610074800.0 | north_side   | meh      | nan       | nan                | nan      |
-| 1610074800.0 | uptown       | great    | nan       | nan                | nan      |
-| 1610074800.0 | west_end     | amazing  | nan       | nan                | nan      |
-| 1610074800.0 | uptown       | amazing  | nan       | nan                | nan      |
-| 1610074800.0 | east_end     | amazing  | nan       | nan                | nan      |
-| 1610074800.0 | south_side   | good     | nan       | nan                | nan      |
-| 1610078400.0 | west_end     | meh      | nan       | nan                | nan      | <- 2021-01-08 04:00:00.0
-| 1610078400.0 | north_side   | meh      | 10.0      | 590.3262939453125  | 590.326  | <- 2021-01-08 04:00:00.0
-| 1610078400.0 | uptown       | great    | nan       | nan                | nan      |
-                   ...                                        ...
+WHERE ts BETWEEN '2021-01-08' AND '2021-01-10'
+SAMPLE BY 1d FILL (0, 0, 0, 0);
 
-
-| 1610092800.0 | north_side   | meh      | nan       | nan                | nan      |
-| 1610092800.0 | uptown       | great    | 14.0      | 536.1471557617188  | 536.147  |
-| 1610092800.0 | west_end     | amazing  | nan       | nan                | nan      |
-                   ...                                        ...
-
-
-| 1610107200.0 | uptown       | great    | nan       | nan                | nan      |
-| 1610107200.0 | west_end     | amazing  | 12.0      | 1278.8529052734375 | 1278.853 |
-| 1610107200.0 | uptown       | amazing  | nan       | nan                | nan      |
-| 1610107200.0 | east_end     | amazing  | nan       | nan                | nan      |
-                   ...                                        ...
-
-
-| 1610121600.0 | west_end     | amazing  | nan       | nan                | nan      |
-| 1610121600.0 | uptown       | amazing  | 6.0       | 1486.904296875     | 1486.904 |
-| 1610121600.0 | east_end     | amazing  | nan       | nan                | nan      |
-
-                   ...                                        ...
-
-| 1610136000.0 | uptown       | amazing  | nan       | nan                | nan      |
-| 1610136000.0 | east_end     | amazing  | 7.0       | 1355.678466796875  | 1355.679 |
-| 1610136000.0 | south_side   | good     | nan       | nan                | nan      |
-
-                   ...                                        ...
-
-| 1610150400.0 | east_end     | amazing  | nan       | nan                | nan      |
-| 1610150400.0 | south_side   | good     | 4.0       | 718.14990234375    | 718.15   |
-+--------------+--------------+----------+-----------+--------------------+----------+
-175 rows in set (0.41 sec)
++--------------+----------------+----------+----------+----------+--------------------+
+| ts           | neighborhood   | DaysLive | MinRent  | MaxRent  | AvgRent            |
++--------------+----------------+----------+----------+----------+--------------------+
+| 1610064000.0 | south_side     | 19       | 1285.338 | 1285.338 | 1285.338134765625  |
+| 1610064000.0 | downtown       | 7        | 1047.14  | 1047.14  | 1047.1396484375    |
+| 1610064000.0 | berkeley_hills | 17       | 727.52   | 727.52   | 727.5198974609375  |
+| 1610064000.0 | westbrae       | 36       | 1038.358 | 1047.342 | 1042.85009765625   |
+| 1610064000.0 | thowsand_oaks  | 5        | 1067.319 | 1067.319 | 1067.318603515625  |
+| 1610064000.0 | alcatraz_ave   | 0        | 0.0      | 0.0      | 0.0                |
+| 1610150400.0 | south_side     | 10       | 694.403  | 694.403  | 694.4031982421875  |
+| 1610150400.0 | downtown       | 16       | 546.798  | 643.204  | 595.0011291503906  |
+| 1610150400.0 | berkeley_hills | 4        | 1256.49  | 1256.49  | 1256.4903564453125 |
+| 1610150400.0 | westbrae       | 0        | 0.0      | 0.0      | 0.0                |
+| 1610150400.0 | thowsand_oaks  | 0        | 0.0      | 0.0      | 0.0                |
+| 1610150400.0 | alcatraz_ave   | 14       | 653.924  | 1250.477 | 952.2005004882812  |
+| 1610236800.0 | south_side     | 0        | 0.0      | 0.0      | 0.0                |
+| 1610236800.0 | downtown       | 9        | 1357.916 | 1357.916 | 1357.9158935546875 |
+| 1610236800.0 | berkeley_hills | 0        | 0.0      | 0.0      | 0.0                |
+| 1610236800.0 | westbrae       | 0        | 0.0      | 0.0      | 0.0                |
+| 1610236800.0 | thowsand_oaks  | 0        | 0.0      | 0.0      | 0.0                |
+| 1610236800.0 | alcatraz_ave   | 0        | 0.0      | 0.0      | 0.0                |
++--------------+----------------+----------+----------+----------+--------------------+
+18 rows in set (0.18 sec)
 ```
-
-Beyond SELECT statements, for instance when we need to save the results of the above queries into new tables,
-we need to use QuestDB's web console available at [localhost:9000](http://localhost:9000), and then we can 
-create table `a_day_sampled_by_1h` like this:
+  
+Beyond SELECT statements, for instance when we need to save the results of a query into a new table,
+we need to use QuestDB's web console available at [localhost:9000](http://localhost:9000):
 
 ```sql
-CREATE TABLE a_day_sampled_by_1h AS (
-    SELECT 
-        ts as ts,
-        neighborhood as neighborhood,
-        location as location,
-        sum(days_on_market) total_days_on_market, 
-        avg(rental_price) avg_rent,
-        min(rental_price) min_rent
+CREATE TABLE sample_query_results AS (
+    SELECT
+        ts,
+        neighborhood, 
+        sum(days_on_market) DaysLive,
+        min(rental_price) MinRent,
+        max(rental_price) MaxRent,
+        avg(rental_price) AvgRent
     FROM house_rentals_data
-    WHERE ts BETWEEN '2021-01-08' AND '2021-01-09'
-    SAMPLE BY 1h
+    WHERE ts BETWEEN '2021-01-08' AND '2021-01-10'
+    SAMPLE BY 1d FILL (0, 0, 0, 0)
 ) TIMESTAMP(ts) PARTITION BY MONTH;
 ```
 
@@ -487,24 +403,25 @@ mysql> select * from datasources;
 
 ## Creating a predictor
 
-We can create a predictor model `mindsdb.home_rentals_model_ts` to predict `predicted_rental_price` 
-for the next 2 days considering the past 10 days:
+We can create a predictor model `mindsdb.home_rentals_model_ts` to predict the `rental_price` 
+for a `neighborhood` considering the past 20 days, and no additional features:
 
 ```sql
 USE mindsdb;
 
-CREATE PREDICTOR home_rentals_model_ts FROM questdb (
-    SELECT number_of_rooms, location, neighborhood, days_on_market, rental_price, ts
+CREATE PREDICTOR mindsdb.home_rentals_model_ts FROM questdb (
+    SELECT
+        neighborhood,
+        rental_price,
+        ts
     FROM house_rentals_data
-)
-PREDICT rental_price as predicted_rental_price
-ORDER BY ts
-WINDOW 10 HORIZON 2;
+) 
+PREDICT rental_price ORDER BY ts GROUP BY neighborhood
+WINDOW 20 HORIZON 1;
 ```
 
 This triggers MindsDB to create/train the model based on the full data available from QuestDB's table 
-`house_rentals_data` (100 rows) as a timeseries on column `ts`, with a history of 10 rows to predict 
-the next 2.
+`house_rentals_data` (100 rows) as a timeseries on column `ts`.
 
 You can see the progress by monitoring the log output of the `mindsdb` Docker container, and you can
 ask MindsDB directly:
@@ -514,7 +431,7 @@ mysql> select * from predictors;
 +-----------------------+------------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
 | name                  | status     | accuracy | predict      | update_status | mindsdb_version | error | select_data_query | training_options |
 +-----------------------+------------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
-| home_rentals_model_ts | generating | NULL     | rental_price | up_to_date    | 22.3.1.0        | NULL  |                   |                  |
+| home_rentals_model_ts | generating | NULL     | rental_price | up_to_date    | 22.3.5.0        | NULL  |                   |                  |
 +-----------------------+------------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
 1 row in set (0.34 sec)
 
@@ -522,7 +439,7 @@ mysql> select * from predictors;
 +-----------------------+----------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
 | name                  | status   | accuracy | predict      | update_status | mindsdb_version | error | select_data_query | training_options |
 +-----------------------+----------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
-| home_rentals_model_ts | training | NULL     | rental_price | up_to_date    | 22.3.1.0        | NULL  |                   |                  |
+| home_rentals_model_ts | training | NULL     | rental_price | up_to_date    | 22.3.5.0        | NULL  |                   |                  |
 +-----------------------+----------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
 1 row in set (0.28 sec)
 
@@ -530,12 +447,12 @@ mysql> select * from predictors;
 +-----------------------+----------+--------------------+--------------+---------------+-----------------+-------+-------------------+------------------+
 | name                  | status   | accuracy           | predict      | update_status | mindsdb_version | error | select_data_query | training_options |
 +-----------------------+----------+--------------------+--------------+---------------+-----------------+-------+-------------------+------------------+
-| home_rentals_model_ts | complete | 1.3742857938858857 | rental_price | up_to_date    | 22.3.1.0        | NULL  |                   |                  |
+| home_rentals_model_ts | complete | 1.2838685373618899 | rental_price | up_to_date    | 22.3.5.0        | NULL  |                   |                  |
 +-----------------------+----------+--------------------+--------------+---------------+-----------------+-------+-------------------+------------------+
-1 row in set (0.18 sec)
+1 row in set (0.04 sec)
 ```
 
-When status is **complete** the model is ready for use, until then, we simply wait while we observe `mindsdb`'s 
+When status is **complete** the model is ready for use, until then, we simply wait while we observe MindsDB's 
 logs, and repeat the query periodically. Creating/training a model will take time proportional to the number of features, 
 i.e.cardinality of the source table as defined in the inner SELECT of the CREATE PREDICTOR statement, and the 
 size of the corpus, i.e. number of rows. The model is a table in MindsDB:
@@ -558,16 +475,72 @@ mysql> show tables;
 
 ## Querying MindsDB for predictions
 
-TO BE CONTINUED ...
-
-## MindsDB http api
-
-MindsDB exposes a REST api with swagger available at [http://localhost:47334/doc/](http://localhost:47334/doc/).
+The latest `rental_price` value per `neighborhood` in table `questdb.house_rentals_data` 
+(as per the [uploaded data](./sample_house_rentals_data.csv)) can be obtained directly from QuestDB
+executing query:
 
 
-# Well done reading this fine article!
+```sql
+mysql> USE questdb;
+Database changed
 
-###Thank you for giving us a High Five, and a star in GitHub!!
+mysql> SELECT neighborhood, rental_price, ts FROM house_rentals_data LATEST BY neighborhood;
++----------------+--------------+--------------+
+| neighborhood   | rental_price | ts           |
++----------------+--------------+--------------+
+| thowsand_oaks  | 1150.427     | 1610712000.0 |   (2021-01-15 12:00:00.0)
+| south_side     | 726.953      | 1610784000.0 |   (2021-01-16 08:00:00.0)
+| downtown       | 568.73       | 1610798400.0 |   (2021-01-16 12:00:00.0)
+| westbrae       | 543.83       | 1610841600.0 |   (2021-01-17 00:00:00.0)
+| berkeley_hills | 559.928      | 1610870400.0 |   (2021-01-17 08:00:00.0)
+| alcatraz_ave   | 1268.529     | 1610884800.0 |   (2021-01-17 12:00:00.0)
++----------------+--------------+--------------+
+6 rows in set (0.13 sec)
 
-- **QuestDB**: [https://github.com/questdb/questdb](https://github.com/questdb/questdb)
-- **MindsDB**: [https://github.com/mindsdb/mindsdb](https://github.com/mindsdb/mindsdb)
+```
+
+To predict the next value:
+
+```bash
+mysql> USE mindsdb;
+Database changed
+
+mysql> SELECT 
+    tb.ts,
+    tb.neighborhood,
+    tb.rental_price as predicted_rental_price,
+    tb.rental_price_explain as explanation
+FROM questdb.house_rentals_data AS ta
+JOIN mindsdb.home_rentals_model_ts AS tb
+WHERE ta.ts > LATEST;
++---------------------+----------------+------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ts                  | neighborhood   | predicted_rental_price | explanation                                                                                                                                                                              |
++---------------------+----------------+------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| 2021-01-15 16:00:00 | thowsand_oaks  |     1418.6784390063583 | {"predicted_value": 1418.6784390063583, "confidence": 0.9991, "anomaly": null, "truth": null, "confidence_lower_bound": 1335.46006120304, "confidence_upper_bound": 1501.8968168096767}  |
+| 2021-01-18 12:00:00 | south_side     |      1422.695076686051 | {"predicted_value": 1422.695076686051, "confidence": 0.9991, "anomaly": null, "truth": null, "confidence_lower_bound": 129.97624067661837, "confidence_upper_bound": 2715.4139126954838} |
+| 2021-01-17 00:00:00 | downtown       |       877.300850901791 | {"predicted_value": 877.300850901791, "confidence": 0.9991, "anomaly": null, "truth": null, "confidence_lower_bound": 379.4333940840109, "confidence_upper_bound": 1375.1683077195712}   |
+| 2021-01-19 08:00:00 | westbrae       |      923.1388536265223 | {"predicted_value": 923.1388536265223, "confidence": 0.9991, "anomaly": null, "truth": null, "confidence_lower_bound": 385.83285788378925, "confidence_upper_bound": 1460.4448493692553} |
+| 2021-01-17 12:00:00 | berkeley_hills |        646.59808057726 | {"predicted_value": 646.59808057726, "confidence": 0.9991, "anomaly": null, "truth": null, "confidence_lower_bound": 303.25399055725046, "confidence_upper_bound": 989.9421705972695}    |
+| 2021-01-18 04:00:00 | alcatraz_ave   |     1305.0093268951655 | {"predicted_value": 1305.0093268951655, "confidence": 0.9991, "anomaly": null, "truth": null, "confidence_lower_bound": 879.0235280982823, "confidence_upper_bound": 1730.9951256920485} |
++---------------------+----------------+------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+```
+
+
+# Summary
+
+In this article we have introduced **QuestDB** and **MindsDB** in a hands-on approach. QuestDB can help you store, 
+analyse, transform timeseries data, while MindsDB can help you make predictions about it. Albeit simple, our use case 
+should have lowered the entry barrier to these two deep technologies, and now you can deepen your knowledge further 
+undertaking more ambitious ML projects. **Thank you for getting this far!!!**, if you liked this content we'd love to 
+know your thoughts, please come and say hello in our welcoming communities: 
+
+- [QuestDB Community Slack](https://slack.questdb.io/).
+- [MindsDB Community Slack](https://mindsdbcommunity.slack.com/join/shared_invite/zt-o8mrmx3l-5ai~5H66s6wlxFfBMVI6wQ#/shared-invite/email).
+
+Further reading:
+
+- [QuestDB documentation](https://questdb.io/docs/introduction/).
+- [MindsDB documentation](https://docs.mindsdb.com/).
+
+See you soon!
+

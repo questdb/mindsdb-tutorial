@@ -29,12 +29,14 @@ MINDSDB_VERSION := $(shell curl --silent "https://public.api.mindsdb.com/install
 
 
 build-mindsdb-image:
-	docker build --no-cache --build-arg MINDSDB_VERSION=$(MINDSDB_VERSION) -t mindsdb/mindsdb:questdb_tutorial .
+	docker build -f Dockerfile --no-cache --build-arg MINDSDB_VERSION=$(MINDSDB_VERSION) -t mindsdb/mindsdb:questdb_tutorial .
 
 compose-up:
 	docker-compose -f docker-compose.yaml up -d
 
 compose-down:
 	docker-compose -f docker-compose.yaml down --remove-orphans
+
+docker-prune:
 	echo "y" | docker container prune
 	echo "y" | docker volume prune
