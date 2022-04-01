@@ -53,16 +53,15 @@ Have fun!
   - `make compose-down`: Stops/prunes the containers and their volumes. 
     
      Note: we use external folders to make MindsDB and QuestDB's data persistent across `compose-{up | down}`.
-     You can remove all persisted data and configuration executing `remove_persisted_data.sh`. Doing this means 
-     that the next time you start the containers you will need to add QuestDB as a datasource again, as well as 
-     recreate the table, upload data, and recreate your ML models.
-- [Curl](https://curl.se/download.html): To check MindsDB's release build version.
+     
+- [Curl](https://curl.se/download.html): To check MindsDB's release build version, and to upload data to QuestDB 
+  from a local [CSV file](./sample_house_rentals_data.csv).
 
 Software repositories in case you are inclined to looking under the hood (**Give us a star!**):
 - QuestDB: [https://github.com/questdb/questdb](https://github.com/questdb/questdb).
 - MindsDB: [https://github.com/mindsdb/mindsdb](https://github.com/mindsdb/mindsdb).
 
-## Build Mindsdb image
+## Build MindsDB image
 
 We can build a MindsDB Docker image locally with command:
 
@@ -70,7 +69,7 @@ We can build a MindsDB Docker image locally with command:
 make build-mindsdb-image
 ```
 
-which takes about 5 minutes depending on network speed as it needs to download MindsDB's base image and install 
+which may take up to 5 minutes, depending on network speed as it needs to download MindsDB's base image and install 
 dependencies to it. The result is image `mindsdb/mindsdb:questdb_tutorial`:
 
 ```bash
@@ -121,7 +120,6 @@ services:
       - "47334:47334"
       - "47335:47335"
       - "47336:47336"
-      - "8000:8000"
     volumes:
       - .:/root
     depends_on:
@@ -179,7 +177,6 @@ We can remove all persisted data and configuration executing:
 
 Note: Doing this means that the next time you start the containers you will need to add QuestDB as a datasource again,
 as well as recreate the table, add data, and recreate your ML models.
-
 
 ## Adding QuestDB as a datasource
 
@@ -531,8 +528,10 @@ WHERE ta.ts > LATEST;
 In this article we have introduced **QuestDB** and **MindsDB** in a hands-on approach. QuestDB can help you store, 
 analyse, transform timeseries data, while MindsDB can help you make predictions about it. Albeit simple, our use case 
 should have lowered the entry barrier to these two deep technologies, and now you can deepen your knowledge further 
-undertaking more ambitious ML projects. **Thank you for getting this far!!!**, if you liked this content we'd love to 
-know your thoughts, please come and say hello in our welcoming communities: 
+undertaking more ambitious ML projects. 
+
+**Thank you for getting this far!!!**, if you liked this content we'd love to know your thoughts, please come and say 
+hello in our welcoming communities: 
 
 - [QuestDB Community Slack](https://slack.questdb.io/).
 - [MindsDB Community Slack](https://mindsdbcommunity.slack.com/join/shared_invite/zt-o8mrmx3l-5ai~5H66s6wlxFfBMVI6wQ#/shared-invite/email).
