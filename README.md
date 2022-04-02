@@ -137,9 +137,9 @@ which allows us to start our two service containers with command:
 make compose-up
 ```
 
-- Conatiner`questdb`: Creates a local folder **qdb_root** to store table data/metadata, and the default server 
+- Container `questdb`: Creates a local folder **qdb_root** to store table data/metadata, and the default server 
   configuration => available at [localhost:9000](http://localhost:9000).
-- Conatiner `mindsdb`: Creates two local folders **mindsdb_store**, **nltk_data**, and uses configuration file 
+- Container `mindsdb`: Creates two local folders **mindsdb_store**, **nltk_data**, and uses configuration file 
   **mindsdb_config.json** => available at [localhost:47334](http://localhost:47334).
   
 MindsDB takes about 60-90 seconds to become available, logs can be followed in the terminal:
@@ -218,7 +218,7 @@ CREATE DATASOURCE questdb
     };
 ```
 
-Note: in this case MindsDB's web console will not assign it a `Name Your Connection`.
+Note: in this case, MindsDB's web console will not assign it a `Name Your Connection`.
 
 ## Adding data to QuestDB
 
@@ -525,9 +525,9 @@ WHERE ta.ts > LATEST;
 
 # Summary
 
-In this article we have introduced **QuestDB** and **MindsDB** in a hands-on approach. QuestDB can help you store, 
-analyse, transform timeseries data, while MindsDB can help you make predictions about it. Albeit simple, our use case 
-should have lowered the entry barrier to these two deep technologies, and now you can deepen your knowledge further 
+In this article, we have introduced **QuestDB** and **MindsDB** in a hands-on approach. QuestDB can help you store, 
+analyse, and transform timeseries data, while MindsDB can help you make predictions about it. Albeit simple, our use case 
+should have lowered the entry barrier to these two deep technologies, and now you can deepen your knowledge further by
 undertaking more ambitious ML projects. 
 
 **Thank you for getting this far!!!**, if you liked this content we'd love to know your thoughts, please come and say 
