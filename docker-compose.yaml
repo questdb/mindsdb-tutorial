@@ -14,14 +14,13 @@ services:
       - ./qdb_root:/root/.questdb
 
   mindsdb:
-    image: mindsdb/mindsdb:questdb_tutorial
+    image: mindsdb/mindsdb
     container_name: mindsdb
     pull_policy: "never"
     restart: "always"
     ports:
       - "47334:47334"
       - "47335:47335"
-      - "47336:47336"
     volumes:
       - .:/root
     depends_on:
