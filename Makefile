@@ -21,16 +21,6 @@
 #  limitations under the License.
 #
 
-ifeq (, $(shell which curl))
-$(error "Command curl not found in $(PATH)")
-endif
-
-MINDSDB_VERSION := $(shell curl --silent "https://public.api.mindsdb.com/installer/release/docker___success___None")
-
-
-build-mindsdb-image:
-	docker build -f Dockerfile --no-cache --build-arg MINDSDB_VERSION=$(MINDSDB_VERSION) -t mindsdb/mindsdb:questdb_tutorial .
-
 compose-up:
 	docker-compose -f docker-compose.yaml up -d
 
