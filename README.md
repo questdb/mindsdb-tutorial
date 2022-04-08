@@ -219,6 +219,8 @@ Only two databases are relevant to us, *questdb* and *mindsdb*:
     5 rows in set (0.34 sec) 
     ```
 
+NOTE: To see `questdb` as a database you will need to add it as a datasource, just follow the next section.
+
 ## Adding QuestDB as a datasource
 
 We can add QuestDB as a datasource to MindsDB by executing:
