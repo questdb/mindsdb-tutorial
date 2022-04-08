@@ -14,7 +14,7 @@ services:
       - ./qdb_root:/root/.questdb
 
   mindsdb:
-    image: mindsdb/mindsdb
+    image: mindsdb/mindsdb:latest
     container_name: mindsdb
     pull_policy: "never"
     restart: "always"
