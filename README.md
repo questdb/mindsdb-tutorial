@@ -94,7 +94,7 @@ networks:
 which allows us to start our two service containers with command:
 
 ```bash
-make compose-up
+docker-compose up
 ```
 
 - Container `questdb`: Creates a local folder **qdb_root** to store table data/metadata, and the default server 
@@ -240,7 +240,7 @@ CREATE DATASOURCE questdb
     };
 ```
 
-### questdb 
+### QuestDB 
 
 This is a view on our QuestDB instance added as a QuestDB datasource in section 
 [Adding QuestDB as a datasource](#adding-questdb-as-a-datasource). 
@@ -308,7 +308,7 @@ CREATE TABLE sample_query_results AS (
 ) TIMESTAMP(ts) PARTITION BY MONTH;
 ```
 
-### mindsdb
+### MindsDB
 
 Contains the metadata tables necessary to create ML models and add new data sources:
 
@@ -330,7 +330,7 @@ mysql> select * from datasources;
 +---------+---------------+---------+------+-------+
 | name    | database_type | host    | port | user  |
 +---------+---------------+---------+------+-------+
-| questdb | postgres      | questdb | 8812 | admin |
+| questdb | questdb       | questdb | 8812 | admin |
 +---------+---------------+---------+------+-------+
 1 row in set (0.19 sec)
 ```
@@ -408,7 +408,7 @@ mysql> show tables;
 
 ## Describe the predictor
 
-We can get more information about the trained predictor, how was the accuracy calculated or which columns are important for the predictor by executing the DESCRIBE statement.
+We can get more information about the trained model, how was the accuracy calculated or which columns are important for the model by executing the DESCRIBE statement.
 
 ```sql
 DESCRIBE home_rentals_model_ts
@@ -426,7 +426,7 @@ column_importances: {}
 1 row in set (0.119 sec)
 ```
 
-Or, to see how the model encoded the data prior to training:
+Or, to see how the model encoded the data prior to training we can execute:
 
 ```sql
 DESCRIBE home_rentals_model_ts.features
