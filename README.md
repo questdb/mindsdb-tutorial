@@ -31,7 +31,7 @@ The main goal of this article is to gently introduce these two deep technologies
 understanding to be able to undertake very ambitious ML projects. To that end we will:
 
 - Spawn two Docker containers to run **MindsDB** and **QuestDB**.
-- Add **QuestDB** as a datasource to **MindsDB** using MindsDB's web console.
+- Add **QuestDB** as a datasource to **MindsDB** using SQL Statement.
 - Create a table and add data for a simple ML use case using **QuestDB**'s web console.
 - Connect to **MindsDB** using `mysql` client and write some SQL.
 - Create a predictor for our ML use case.
@@ -43,7 +43,7 @@ Have fun!
 
 - [docker-compose](https://docs.docker.com/compose/install/): To define and run our multi-container 
   Docker application (it is usually installed implicitly when Docker is installed).
-- [MySQL](https://formulae.brew.sh/formula/mysql): The client we will use to interact with MindsDB
+- [MySQL](https://dev.mysql.com/doc/refman/8.0/en/mysql.html): The client we will use to interact with MindsDB
   (`mysql -h 127.0.0.1 --port 47335 -u mindsdb -p`).
      
 - [Curl](https://curl.se/download.html): To upload data to QuestDB 
