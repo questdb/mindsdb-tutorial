@@ -19,7 +19,7 @@ for high-performance demanding applications in financial services, IoT, IIoT, ML
 QuestDB implements **ANSI SQL with additional extensions for time-specific queries**, which make it simple to correlate 
 data from multiple sources using relational and time series [joins](https://questdb.io/docs/reference/sql/join), and 
 execute [aggregation functions](https://questdb.io/docs/reference/function/aggregation) with simplicity and speed.
-In addition, QuestDB is resources efficient (comparatively cheaper than other projects to run in cloud environments), 
+In addition, QuestDB is resource efficient (comparatively cheaper than other projects to run in cloud environments), 
 simple to install, manage, use, and stable in all [production environments](https://questdb.io/customers/).   
 
 Combining both MindsDB and QuestDB gives you unbound prediction ability with SQL. You can perform all the pre-processing 
@@ -49,7 +49,7 @@ Have fun!
 - [Curl](https://curl.se/download.html): To upload data to QuestDB 
   from a local [CSV file](./sample_house_rentals_data.csv).
 
-Software repositories in case you are inclined to looking under the hood (**Give us a star!**):
+Software repositories in case you are inclined to look under the hood (**Give us a star!**):
 - QuestDB: [https://github.com/questdb/questdb](https://github.com/questdb/questdb).
 - MindsDB: [https://github.com/mindsdb/mindsdb](https://github.com/mindsdb/mindsdb).
 
@@ -405,6 +405,48 @@ mysql> show tables;
 +-----------------------+
 4 rows in set (0.21 sec)
 ```
+
+## Describe the predictor
+
+We can get more information about the trained predictor, how was the accuracy calculated or which columns are important for the predictor by executing the DESCRIBE statement.
+
+```sql
+DESCRIBE home_rentals_model_ts
+```
+
+```sql
+MySQL [mindsdb]> DESCRIBE home_rentals_model_ts;
+*************************** 1. row ***************************
+        accuracies: {'evaluate_num_array_accuracy': 1.429527527262832}
+column_importances: {}
+           outputs: ['rental_price']
+            inputs: ['neighborhood', 'ts', '__mdb_ts_previous_rental_price']
+        datasource: home_rentals_model_ts
+             model: encoders --> dtype_dict --> dependency_dict --> model --> problem_definition --> identifiers --> accuracy_functions
+1 row in set (0.119 sec)
+```
+
+Or, to see how the model encoded the data prior to training:
+
+```sql
+DESCRIBE home_rentals_model_ts.features
+```
+
+```sql
+
+MySQL [mindsdb]> DESCRIBE home_rentals_model_ts.features;
++--------------+-------------+------------------+---------+
+| column       | type        | encoder          | role    |
++--------------+-------------+------------------+---------+
+| neighborhood | categorical | OneHotEncoder    | feature |
+| rental_price | float       | TsNumericEncoder | target  |
+| ts           | datetime    | ArrayEncoder     | feature |
++--------------+-------------+------------------+---------+
+3 rows in set (0.077 sec)
+
+```
+
+Additional information about the models and how they can be customized can be found on the [Lightwood docs](https://lightwood.io/).
 
 ## Querying MindsDB for predictions
 
