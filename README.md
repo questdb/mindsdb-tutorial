@@ -341,7 +341,6 @@ We can create a predictor model `mindsdb.home_rentals_model_ts` to predict the `
 for a `neighborhood` considering the past 20 days, and no additional features:
 
 ```sql
-USE mindsdb;
 
 CREATE PREDICTOR mindsdb.home_rentals_model_ts FROM questdb (
     SELECT
