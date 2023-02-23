@@ -30,7 +30,7 @@ powerful ML models.
 The main goal of this article is to gently introduce these two deep technologies and give you enough 
 understanding to be able to undertake very ambitious ML projects. To that end we will:
 
-- Spawn two Docker containers to run **MindsDB** and **QuestDB**.
+- Spawn a Docker container to run **MindsDB** and **QuestDB**.
 - Add **QuestDB** as a datasource to **MindsDB** using a SQL Statement.
 - Create a table and add data for a simple ML use case using **QuestDB**'s web console.
 - Connect to **MindsDB** using `mysql` client and write some SQL.
@@ -41,102 +41,65 @@ Have fun!
 
 ## Requirements
 
-- [docker-compose](https://docs.docker.com/compose/install/): To define and run our multi-container 
-  Docker application (it is usually installed implicitly when Docker is installed).
+- [docker](https://docs.docker.com/): To create an image and run our container 
 - [MySQL](https://dev.mysql.com/doc/refman/8.0/en/mysql.html): The client we will use to interact with MindsDB
   (`mysql -h 127.0.0.1 --port 47335 -u mindsdb -p`).
-     
-- [Curl](https://curl.se/download.html): To upload data to QuestDB 
-  from a local [CSV file](./sample_house_rentals_data.csv).
 
 Software repositories in case you are inclined to look under the hood (**Give us a star!**):
 - MindsDB: [https://github.com/mindsdb/mindsdb](https://github.com/mindsdb/mindsdb).
 - QuestDB: [https://github.com/questdb/questdb](https://github.com/questdb/questdb).
 
-## Running our multi-container Docker application
+## Running our Docker application
 
-We have this [**docker-compose.yaml**](./docker-compose.yaml) file:
-
-```yaml
-version: '3.8'
-
-services:
-  questdb:
-    image: questdb/questdb:latest
-    container_name: questdb
-    pull_policy: "always"
-    restart: "always"
-    ports:
-      - "8812:8812"
-      - "9000:9000"
-      - "9009:9009"
-    volumes:
-      - ./qdb_root:/root/.questdb
-
-  mindsdb:
-    image: mindsdb/mindsdb:latest
-    container_name: mindsdb
-    restart: "always"
-    ports:
-      - "47334:47334"
-      - "47335:47335"
-    volumes:
-      - .:/root
-    depends_on:
-      - questdb
-
-networks:
-  default:
-    name: mindsdb-network
-    driver: bridge
-```
-
-which allows us to start our two service containers with command:
+Build the image first, with command:
 
 ```shell
-docker-compose up -d
+docker build -t questdb/mindsdb:latest .
 ```
 
-- Container `questdb`: Creates a local folder **qdb_root** to store table data/metadata, and the default server 
-  configuration => available at [localhost:9000](http://localhost:9000).
-- Container `mindsdb`: Creates two local folders **mindsdb_store**, **nltk_data**, and uses configuration file 
-  [**mindsdb_config.json**](./mindsdb_config.json).
-  
-MindsDB takes about 60-90 seconds to become available, logs can be followed in the terminal:
+which allows us to start our service container with command:
 
 ```shell
-docker logs -f mindsdb
+docker run --rm \
+    -p 8812:8812 \
+    -p 9009:9009 \
+    -p 9000:9000 \
+    -p 8888:8888 \
+    -p 47334:47334 \
+    -p 47335:47335 \
+    -d \
+    --name qmdb \
+    questdb/mindsdb:latest
+```
+
+The container takes about 10 seconds to become responsive, logs can be followed in the terminal:
+
+```shell
+docker logs -f qmdb
 ...
-Version 22.3.1.0
-Configuration file:
-   /root/mindsdb_config.json
-Storage path:
-   /root/mindsdb_store
 http API: starting...
 mysql API: starting...
 mongodb API: starting...
- ✓ telemetry enabled
- ✓ telemetry enabled
- ✓ telemetry enabled
+...
 mongodb API: started on 47336
 mysql API: started on 47335
 http API: started on 47334
 ```
 
-We can stop the two containers with command:
+The container has these mount points:
+
+- **/home/quest**: User home dir.
+- **~/questdb/**:  QuestDB's root directory.
+- **~/questdb/db/**:  QuestDB's data root directory.
+- **~/backups/**: Directory for backups.
+- **~/csv/**: Directory for COPY operation.
+- **~/mindsdb/storage/**: MindsDB's data root directory.
+
+To manage it as root:
 
 ```shell
-docker-compose down
+docker run --rm -it --name qmdb-cli -u 0 questdb/mindsdb:latest bash
 ```
-
-We can remove all persisted data and configuration executing:
-
-```shell
-./remove_persisted_data.sh
-``` 
-
-Note: Doing this means that the next time you start the containers you will need to add QuestDB as a datasource again,
-as well as recreate the table, add data, and recreate your ML models.
 
 ## Adding data to QuestDB
 
@@ -165,6 +128,7 @@ We can upload data from a [local CSV file](./sample_house_rentals_data.csv) to Q
 ```shell
 curl -F data=@sample_house_rentals_data.csv "http://localhost:9000/imp?forceHeader=true&name=house_rentals_data"
 ```
+
 More information available [here!](https://questdb.io/docs/develop/insert-data#rest-api).
 
 We could equally populate table `house_rentals_data` with random data ([excellent tutorial on this](https://questdb.io/tutorial/2022/03/14/mock-sql-timeseries-data-questdb/)):
@@ -189,19 +153,16 @@ INSERT INTO house_rentals_data SELECT * FROM (
 ```
 
 Either way, this gives us 100 data points, one every 4 hours, from 2021-01-16T12:00:00.000000Z (QuestDB's timestamps 
-are UTC with microsecond precision), conveniently downloaded to file [sample_house_rentals_data.csv](./sample_house_rentals_data.csv).
+are UTC with microsecond precision), conveniently downloaded to file [sample_house_rentals_data.csv](sample_house_rentals_data.csv).
  
 NOTE: If you tried the last query, you will have 200 rows, you can `truncate table house_rentals_data` and run the curl 
 command again, in QuestDB data are immutable.
 
-
 ## Connecting to MindsDB
 
-We can connect to MindsDB with a standard mysql-wire-protocol compliant client (no password, hit ENTER):
+We can access MindsDB's web console at [localhost:47334](http://localhost:47334): 
 
-```shell
-mysql -h 127.0.0.1 --port 47335 -u mindsdb -p
-```
+![MindsDB_web_console](images/mindsdb_web_console.png)
 
 Only two databases are relevant to us, **questdb** and **mindsdb**
 
@@ -221,20 +182,15 @@ mysql> SHOW DATABASES;
 
 To see `questdb` as a database we need to add it:
   
-```shell
-mysql> USE mindsdb;
-Database changed
-  
-mysql>  
-CREATE DATASOURCE questdb
+```sql
+CREATE DATABASE questdb
     WITH ENGINE = "questdb",
     PARAMETERS = {
         "user": "admin",
         "password": "quest",
-        "host": "questdb",
+        "host": "0.0.0.0",
         "port": "8812",
-        "database": "questdb",
-        "public": true
+        "database": "questdb"
     };
 ```
 
@@ -245,10 +201,7 @@ QuestDB's unique SQL syntax because statements are sent from MindsDB to QuestDB 
 them. It only works for *SELECT* statements (it requires activation by means of **USE questdb;**): 
 
 ```shell
-mysql> USE questdb;
-Database changed
-  
-mysql> 
+USE questdb;
 SELECT
     ts,
     neighborhood, 
@@ -308,10 +261,8 @@ CREATE TABLE sample_query_results AS (
 Contains the metadata tables necessary to create ML models and add new data sources:
 
 ```shell
-mysql> USE mindsdb;
-Database changed
-  
-mysql> SHOW TABLES;
+USE mindsdb;
+SHOW TABLES;
 +-------------------+
 | Tables_in_mindsdb |
 +-------------------+
@@ -321,7 +272,7 @@ mysql> SHOW TABLES;
 +-------------------+
 3 rows in set (0.17 sec)
   
-mysql> SELECT * FROM datasources;
+SELECT * FROM datasources;
 +---------+---------------+---------+------+-------+
 | name    | database_type | host    | port | user  |
 +---------+---------------+---------+------+-------+
@@ -437,7 +388,7 @@ Additional information about the models and how they can be customized can be fo
 ## Querying MindsDB for predictions
 
 The latest `rental_price` value per `neighborhood` in table `questdb.house_rentals_data` 
-(as per the [uploaded data](./sample_house_rentals_data.csv)) can be obtained directly from QuestDB
+(as per the [uploaded data](sample_house_rentals_data.csv)) can be obtained directly from QuestDB
 executing query:
 
 
