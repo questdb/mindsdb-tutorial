@@ -171,10 +171,8 @@ SHOW DATABASES;
 +--------------------+
 | Database           |
 +--------------------+
-| information_schema |
 | mindsdb            |
 | files              |
-| views              |
 | questdb            |
 +--------------------+
 5 rows in set (0.34 sec) 
@@ -201,17 +199,18 @@ QuestDB's unique SQL syntax because statements are sent from MindsDB to QuestDB 
 them. It only works for *SELECT* statements (it requires activation by means of **USE questdb;**): 
 
 ```sql
-USE questdb;
-SELECT
-    ts,
-    neighborhood, 
-    sum(days_on_market) DaysLive,
-    min(rental_price) MinRent,
-    max(rental_price) MaxRent,
-    avg(rental_price) AvgRent
-FROM house_rentals_data
-WHERE ts BETWEEN '2021-01-08' AND '2021-01-10'
-SAMPLE BY 1d FILL (0, 0, 0, 0);
+SELECT * FROM questdb (
+    SELECT
+        ts,
+        neighborhood, 
+        sum(days_on_market) DaysLive,
+        min(rental_price) MinRent,
+        max(rental_price) MaxRent,
+        avg(rental_price) AvgRent
+    FROM house_rentals_data
+    WHERE ts BETWEEN '2021-01-08' AND '2021-01-10'
+    SAMPLE BY 1d FILL (0, 0, 0, 0)
+);
 +--------------+----------------+----------+----------+----------+--------------------+
 | ts           | neighborhood   | DaysLive | MinRent  | MaxRent  | AvgRent            |
 +--------------+----------------+----------+----------+----------+--------------------+
@@ -256,7 +255,7 @@ CREATE TABLE sample_query_results AS (
 
 ### mindsdb
 
-Contains the metadata tables necessary to create ML models and add new data sources:
+Contains the metadata tables necessary to create ML models:
 
 ```sql
 USE mindsdb;
@@ -264,19 +263,9 @@ SHOW TABLES;
 +-------------------+
 | Tables_in_mindsdb |
 +-------------------+
-| predictors        |  
-| commands          |
-| datasources       |
+| models            |  
+| models_versions   |
 +-------------------+
-3 rows in set (0.17 sec)
-  
-SELECT * FROM datasources;
-+---------+---------------+---------+------+-------+
-| name    | database_type | host    | port | user  |
-+---------+---------------+---------+------+-------+
-| questdb | questdb       | questdb | 8812 | admin |
-+---------+---------------+---------+------+-------+
-1 row in set (0.19 sec)
 ```
 
 ## Creating a predictor
@@ -286,7 +275,7 @@ for a `neighborhood` considering the past 20 days, and no additional features:
 
 ```sql
 USE mindsdb;
-CREATE PREDICTOR mindsdb.home_rentals_model_ts FROM questdb (
+CREATE MODEL mindsdb.home_rentals_model_ts FROM questdb (
     SELECT
         neighborhood,
         rental_price,
@@ -300,46 +289,19 @@ WINDOW 20 HORIZON 1;
 This triggers MindsDB to create/train the model based on the full data available from QuestDB's table 
 `house_rentals_data` (100 rows) as a timeseries on column `ts`.
 
-You can see the progress by monitoring the log output of the `mindsdb` Docker container, and you can
-ask MindsDB directly:
-
-```sql
-SELECT * FROM predictors;
-+-----------------------+------------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
-| name                  | status     | accuracy | predict      | update_status | mindsdb_version | error | select_data_query | training_options |
-+-----------------------+------------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
-| home_rentals_model_ts | generating | NULL     | rental_price | up_to_date    | 22.4.3.0        | NULL  |                   |                  |
-+-----------------------+------------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
-
-select * from predictors;
-+-----------------------+----------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
-| name                  | status   | accuracy | predict      | update_status | mindsdb_version | error | select_data_query | training_options |
-+-----------------------+----------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
-| home_rentals_model_ts | training | NULL     | rental_price | up_to_date    | 22.4.3.0        | NULL  |                   |                  |
-+-----------------------+----------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
-
-select * from predictors;
-+-----------------------+----------+--------------------+--------------+---------------+-----------------+-------+-------------------+------------------+
-| name                  | status   | accuracy           | predict      | update_status | mindsdb_version | error | select_data_query | training_options |
-+-----------------------+----------+--------------------+--------------+---------------+-----------------+-------+-------------------+------------------+
-| home_rentals_model_ts | complete | 1.2838687001988949 | rental_price | up_to_date    | 22.4.3.0        | NULL  |                   |                  |
-+-----------------------+----------+--------------------+--------------+---------------+-----------------+-------+-------------------+------------------+
-```
-
-When status is **complete** the model is ready for use, until then, we simply wait while we observe MindsDB's 
-logs, and repeat the query periodically. Creating/training a model will take time proportional to the number of features, 
-i.e.cardinality of the source table as defined in the inner SELECT of the CREATE PREDICTOR statement, and the 
-size of the corpus, i.e. number of rows. The model is a table in MindsDB:
+You can see the progress by monitoring the log output of the `mindsdb` Docker container. Creating/training a 
+model will take time proportional to the number of features, i.e.cardinality of the source table as defined 
+in the inner SELECT of the CREATE PREDICTOR statement, and the size of the corpus, i.e. number of rows. The 
+model is a table in MindsDB:
 
 ```sql
 SHOW TABLES;
 +-----------------------+
 | Tables_in_mindsdb     |
 +-----------------------+
+| models                |
+| model_versions        |
 | home_rentals_model_ts |
-| predictors            |
-| commands              |
-| datasources           |
 +-----------------------+
 ```
 
@@ -348,20 +310,19 @@ SHOW TABLES;
 We can get more information about the trained model, how was the accuracy calculated or which columns are important for the model by executing the DESCRIBE statement.
 
 ```sql
-DESCRIBE home_rentals_model_ts;
+DESCRIBE MODEL mindsdb.home_rentals_model_ts;
 *************************** 1. row ***************************
-        accuracies: {'evaluate_num_array_accuracy': 1.429527527262832}
-column_importances: {}
+        accuracies: {'complementary_smape_array_accuracy':0.859}
            outputs: ['rental_price']
             inputs: ['neighborhood', 'ts', '__mdb_ts_previous_rental_price']
         datasource: home_rentals_model_ts
-             model: encoders --> dtype_dict --> dependency_dict --> model --> problem_definition --> identifiers --> accuracy_functions
+             model: encoders --> dtype_dict --> dependency_dict --> model --> problem_definition --> identifiers --> imputers --> accuracy_functions
 ```
 
 Or, to see how the model encoded the data prior to training we can execute:
 
 ```sql
-DESCRIBE home_rentals_model_ts.features;
+DESCRIBE MODEL mindsdb.home_rentals_model_ts.features;
 +--------------+-------------+------------------+---------+
 | column       | type        | encoder          | role    |
 +--------------+-------------+------------------+---------+
@@ -382,12 +343,14 @@ executing query:
 
 ```sql
 USE questdb;
-SELECT 
-    neighborhood, 
-    rental_price, 
-    ts 
-FROM house_rentals_data 
-LATEST BY neighborhood;
+SELECT * FROM questdb (
+    SELECT 
+        neighborhood, 
+        rental_price, 
+        ts 
+    FROM house_rentals_data 
+    LATEST BY neighborhood
+);
 +----------------+--------------+--------------+
 | neighborhood   | rental_price | ts           |
 +----------------+--------------+--------------+
