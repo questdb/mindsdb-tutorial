@@ -212,7 +212,6 @@ SELECT
 FROM house_rentals_data
 WHERE ts BETWEEN '2021-01-08' AND '2021-01-10'
 SAMPLE BY 1d FILL (0, 0, 0, 0);
-
 +--------------+----------------+----------+----------+----------+--------------------+
 | ts           | neighborhood   | DaysLive | MinRent  | MaxRent  | AvgRent            |
 +--------------+----------------+----------+----------+----------+--------------------+
@@ -235,7 +234,6 @@ SAMPLE BY 1d FILL (0, 0, 0, 0);
 | 1610236800.0 | thowsand_oaks  | 0        | 0.0      | 0.0      | 0.0                |
 | 1610236800.0 | alcatraz_ave   | 0        | 0.0      | 0.0      | 0.0                |
 +--------------+----------------+----------+----------+----------+--------------------+
-18 rows in set (0.18 sec)
 ```
   
 Beyond SELECT statements, for instance when we need to save the results of a query into a new table,
