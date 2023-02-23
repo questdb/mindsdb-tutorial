@@ -166,8 +166,8 @@ We can access MindsDB's web console at [localhost:47334](http://localhost:47334)
 
 Only two databases are relevant to us, **questdb** and **mindsdb**
 
-```shell
-mysql> SHOW DATABASES;
+```sql
+SHOW DATABASES;
 +--------------------+
 | Database           |
 +--------------------+
@@ -180,7 +180,7 @@ mysql> SHOW DATABASES;
 5 rows in set (0.34 sec) 
 ```
 
-To see `questdb` as a database we need to add it:
+To see `questdb` as a database we need to add it by executing:
   
 ```sql
 CREATE DATABASE questdb
@@ -200,7 +200,7 @@ This is a read-only view on our QuestDB instance. We can query it leveraging the
 QuestDB's unique SQL syntax because statements are sent from MindsDB to QuestDB without interpreting 
 them. It only works for *SELECT* statements (it requires activation by means of **USE questdb;**): 
 
-```shell
+```sql
 USE questdb;
 SELECT
     ts,
@@ -260,7 +260,7 @@ CREATE TABLE sample_query_results AS (
 
 Contains the metadata tables necessary to create ML models and add new data sources:
 
-```shell
+```sql
 USE mindsdb;
 SHOW TABLES;
 +-------------------+
@@ -286,11 +286,8 @@ SELECT * FROM datasources;
 We can create a predictor model `mindsdb.home_rentals_model_ts` to predict the `rental_price` 
 for a `neighborhood` considering the past 20 days, and no additional features:
 
-```shell
-mysql> USE mindsdb;
-Database changed
-
-mysql>
+```sql
+USE mindsdb;
 CREATE PREDICTOR mindsdb.home_rentals_model_ts FROM questdb (
     SELECT
         neighborhood,
@@ -308,30 +305,27 @@ This triggers MindsDB to create/train the model based on the full data available
 You can see the progress by monitoring the log output of the `mindsdb` Docker container, and you can
 ask MindsDB directly:
 
-```shell
-mysql> SELECT * FROM predictors;
+```sql
+SELECT * FROM predictors;
 +-----------------------+------------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
 | name                  | status     | accuracy | predict      | update_status | mindsdb_version | error | select_data_query | training_options |
 +-----------------------+------------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
 | home_rentals_model_ts | generating | NULL     | rental_price | up_to_date    | 22.4.3.0        | NULL  |                   |                  |
 +-----------------------+------------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
-1 row in set (0.34 sec)
 
-mysql> select * from predictors;
+select * from predictors;
 +-----------------------+----------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
 | name                  | status   | accuracy | predict      | update_status | mindsdb_version | error | select_data_query | training_options |
 +-----------------------+----------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
 | home_rentals_model_ts | training | NULL     | rental_price | up_to_date    | 22.4.3.0        | NULL  |                   |                  |
 +-----------------------+----------+----------+--------------+---------------+-----------------+-------+-------------------+------------------+
-1 row in set (0.28 sec)
 
-mysql> select * from predictors;
+select * from predictors;
 +-----------------------+----------+--------------------+--------------+---------------+-----------------+-------+-------------------+------------------+
 | name                  | status   | accuracy           | predict      | update_status | mindsdb_version | error | select_data_query | training_options |
 +-----------------------+----------+--------------------+--------------+---------------+-----------------+-------+-------------------+------------------+
 | home_rentals_model_ts | complete | 1.2838687001988949 | rental_price | up_to_date    | 22.4.3.0        | NULL  |                   |                  |
 +-----------------------+----------+--------------------+--------------+---------------+-----------------+-------+-------------------+------------------+
-1 row in set (0.04 sec)
 ```
 
 When status is **complete** the model is ready for use, until then, we simply wait while we observe MindsDB's 
@@ -339,8 +333,8 @@ logs, and repeat the query periodically. Creating/training a model will take tim
 i.e.cardinality of the source table as defined in the inner SELECT of the CREATE PREDICTOR statement, and the 
 size of the corpus, i.e. number of rows. The model is a table in MindsDB:
 
-```shell
-mysql> SHOW TABLES;
+```sql
+SHOW TABLES;
 +-----------------------+
 | Tables_in_mindsdb     |
 +-----------------------+
@@ -349,15 +343,14 @@ mysql> SHOW TABLES;
 | commands              |
 | datasources           |
 +-----------------------+
-4 rows in set (0.21 sec)
 ```
 
 ## Describe the predictor
 
 We can get more information about the trained model, how was the accuracy calculated or which columns are important for the model by executing the DESCRIBE statement.
 
-```shell
-mysql> DESCRIBE home_rentals_model_ts;
+```sql
+DESCRIBE home_rentals_model_ts;
 *************************** 1. row ***************************
         accuracies: {'evaluate_num_array_accuracy': 1.429527527262832}
 column_importances: {}
@@ -365,13 +358,12 @@ column_importances: {}
             inputs: ['neighborhood', 'ts', '__mdb_ts_previous_rental_price']
         datasource: home_rentals_model_ts
              model: encoders --> dtype_dict --> dependency_dict --> model --> problem_definition --> identifiers --> accuracy_functions
-1 row in set (0.119 sec)
 ```
 
 Or, to see how the model encoded the data prior to training we can execute:
 
-```shell
-mysql> DESCRIBE home_rentals_model_ts.features;
+```sql
+DESCRIBE home_rentals_model_ts.features;
 +--------------+-------------+------------------+---------+
 | column       | type        | encoder          | role    |
 +--------------+-------------+------------------+---------+
@@ -379,8 +371,6 @@ mysql> DESCRIBE home_rentals_model_ts.features;
 | rental_price | float       | TsNumericEncoder | target  |
 | ts           | datetime    | ArrayEncoder     | feature |
 +--------------+-------------+------------------+---------+
-3 rows in set (0.077 sec)
-
 ```
 
 Additional information about the models and how they can be customized can be found on the [Lightwood docs](https://lightwood.io/).
@@ -392,11 +382,8 @@ The latest `rental_price` value per `neighborhood` in table `questdb.house_renta
 executing query:
 
 
-```shell
-mysql> USE questdb;
-Database changed
-
-mysql> 
+```sql
+USE questdb;
 SELECT 
     neighborhood, 
     rental_price, 
@@ -413,17 +400,12 @@ LATEST BY neighborhood;
 | berkeley_hills | 559.928      | 1610870400.0 |   (2021-01-17 08:00:00.0)
 | alcatraz_ave   | 1268.529     | 1610884800.0 |   (2021-01-17 12:00:00.0)
 +----------------+--------------+--------------+
-6 rows in set (0.13 sec)
-
 ```
 
 To predict the next value:
 
-```shell
-mysql> USE mindsdb;
-Database changed
-
-mysql> 
+```sql
+USE mindsdb;
 SELECT 
     tb.ts,
     tb.neighborhood,
