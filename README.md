@@ -30,10 +30,10 @@ powerful ML models.
 The main goal of this article is to gently introduce these two deep technologies and give you enough 
 understanding to be able to undertake very ambitious ML projects. To that end we will:
 
-- Spawn a Docker container to run **MindsDB** and **QuestDB**.
+- Build a Docker image and spawn a container to run **MindsDB** and **QuestDB** together.
 - Add **QuestDB** as a datasource to **MindsDB** using a SQL Statement.
 - Create a table and add data for a simple ML use case using **QuestDB**'s web console.
-- Connect to **MindsDB** using `mysql` client and write some SQL.
+- Connect to **MindsDB** using its web console write some SQL.
 - Create a predictor for our ML use case.
 - Make some predictions about our data.
 
@@ -41,9 +41,7 @@ Have fun!
 
 ## Requirements
 
-- [docker](https://docs.docker.com/): To create an image and run our container 
-- [MySQL](https://dev.mysql.com/doc/refman/8.0/en/mysql.html): The client we will use to interact with MindsDB
-  (`mysql -h 127.0.0.1 --port 47335 -u mindsdb -p`).
+[docker](https://docs.docker.com/) is required to create an image and run our container. 
 
 Software repositories in case you are inclined to look under the hood (**Give us a star!**):
 - MindsDB: [https://github.com/mindsdb/mindsdb](https://github.com/mindsdb/mindsdb).
@@ -72,7 +70,7 @@ docker run --rm \
     questdb/mindsdb:latest
 ```
 
-The container takes about 10 seconds to become responsive, logs can be followed in the terminal:
+The container is run as user `quest`. It takes about 10 seconds to become responsive, logs can be followed in the terminal:
 
 ```shell
 docker logs -f qmdb
@@ -196,7 +194,7 @@ CREATE DATABASE questdb
 
 This is a read-only view on our QuestDB instance. We can query it leveraging the full power of 
 QuestDB's unique SQL syntax because statements are sent from MindsDB to QuestDB without interpreting 
-them. It only works for *SELECT* statements (it requires activation by means of **USE questdb;**): 
+them. It only works for *SELECT* statements: 
 
 ```sql
 SELECT * FROM questdb (
@@ -268,7 +266,7 @@ SHOW TABLES;
 +-------------------+
 ```
 
-## Creating a predictor
+## Creating a predictor model
 
 We can create a predictor model `mindsdb.home_rentals_model_ts` to predict the `rental_price` 
 for a `neighborhood` considering the past 20 days, and no additional features:
@@ -305,7 +303,7 @@ SHOW TABLES;
 +-----------------------+
 ```
 
-## Describe the predictor
+## Describe the predictor model
 
 We can get more information about the trained model, how was the accuracy calculated or which columns are important for the model by executing the DESCRIBE statement.
 
