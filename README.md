@@ -274,7 +274,6 @@ We can create a predictor model `mindsdb.home_rentals_model_ts` to predict the `
 for a `neighborhood` considering the past 20 days, and no additional features:
 
 ```sql
-USE mindsdb;
 CREATE MODEL mindsdb.home_rentals_model_ts FROM questdb (
     SELECT
         neighborhood,
@@ -299,6 +298,7 @@ SHOW TABLES;
 +-----------------------+
 | Tables_in_mindsdb     |
 +-----------------------+
+| information_schema    |    
 | models                |
 | model_versions        |
 | home_rentals_model_ts |
@@ -342,7 +342,6 @@ executing query:
 
 
 ```sql
-USE questdb;
 SELECT * FROM questdb (
     SELECT 
         neighborhood, 
@@ -366,7 +365,6 @@ SELECT * FROM questdb (
 To predict the next value:
 
 ```sql
-USE mindsdb;
 SELECT 
     tb.ts,
     tb.neighborhood,
@@ -407,4 +405,3 @@ Further reading:
 - [MindsDB documentation](https://docs.mindsdb.com/).
 
 See you soon!
-
