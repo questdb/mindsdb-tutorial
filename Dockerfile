@@ -1,4 +1,4 @@
-FROM python:3.7
+FROM python:3.10-slim-buster
 
 # cat /etc/os-release
 # Debian GNU/Linux 11 (bullseye)
@@ -17,16 +17,20 @@ EXPOSE 47334/tcp
 EXPOSE 47335/tcp
 EXPOSE 47336/tcp
 
+ENV JDK_VERSION=17.0.7.7-1
+ENV FLASK_DEBUG "1"
+
 # Update system - Install JDK 17
 RUN apt-get -y update
 RUN apt-get -y dist-upgrade
 RUN apt-get -y install software-properties-common build-essential syslog-ng \
     ca-certificates gnupg2 lsb-release iputils-ping procps git curl wget vim \
     unzip less tar gzip bzip2 openssl lshw libxml2 net-tools
-RUN wget -O- https://apt.corretto.aws/corretto.key | gpg --dearmor | tee /etc/apt/trusted.gpg.d/winehq.gpg > /dev/null
-RUN add-apt-repository 'deb https://apt.corretto.aws stable main'
-RUN apt-get update
-RUN apt-get install -y java-17-amazon-corretto-jdk=1:17.0.3.6-1
+RUN wget -O- https://apt.corretto.aws/corretto.key | gpg --dearmor | tee /etc/apt/trusted.gpg.d/winehq.gpg >/dev/null && \
+    add-apt-repository 'deb https://apt.corretto.aws stable main' && \
+    apt-get update && \
+    apt-get install --no-install-recommends -y java-17-amazon-corretto-jdk=1:${JDK_VERSION} && \
+    apt-get -y install maven
 RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/*
 
@@ -34,7 +38,7 @@ RUN rm -rf /var/lib/apt/lists/*
 RUN useradd -ms /bin/bash quest
 USER quest
 WORKDIR /home/quest
-ENV QUESTDB_TAG=7.0.0
+ENV QUESTDB_TAG=7.3.1
 ENV PYTHONUNBUFFERED 1
 ENV JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto
 ENV PATH="${JAVA_HOME}/bin:/home/quest/.local/bin:${PATH}"
@@ -62,10 +66,10 @@ RUN ulimit -S unlimited
 RUN ulimit -H unlimited
 
 # Install requirements for datascience environment
-RUN echo 'numpy pandas matplotlib seaborn questdb mindsdb'  | sed 's/ /\n/g' > requirements.txt
 RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
-RUN pip install git+https://github.com/mindsdb/lightwood.git@staging --upgrade --no-cache-dir
+RUN pip install pandas matplotlib seaborn psycopg2-binary boto3 neuralforecast questdb mindsdb
+RUN python3 -c 'import nltk; nltk.download("punkt");'
+RUN pip install numpy --upgrade
 
 # Configure MindsDB
 RUN mkdir mindsdb
